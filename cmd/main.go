@@ -6,16 +6,12 @@ import (
 	"os"
 	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 func main() {
-
-	// ===============================
-	// ENV VARIABLES
-	// ===============================
 
 	mysqlDSN := os.Getenv("MYSQL_DSN")
 	mqttBroker := os.Getenv("MQTT_BROKER")
@@ -26,18 +22,12 @@ func main() {
 		log.Fatal("MYSQL_DSN not set")
 	}
 
-	// ===============================
-	// MYSQL
-	// ===============================
+	// ================= MYSQL =================
 
 	db, err := sql.Open("mysql", mysqlDSN)
 	if err != nil {
-		log.Fatal("MySQL open error:", err)
+		log.Fatal(err)
 	}
-
-	db.SetConnMaxLifetime(time.Minute * 3)
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
 
 	if err := db.Ping(); err != nil {
 		log.Fatal("MySQL ping error:", err)
@@ -45,28 +35,22 @@ func main() {
 
 	log.Println("✅ MySQL Connected")
 
-	// ===============================
-	// MQTT
-	// ===============================
+	// ================= MQTT =================
 
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(mqttBroker)
 	opts.SetUsername(mqttUser)
 	opts.SetPassword(mqttPass)
-	opts.SetConnectTimeout(5 * time.Second)
 
 	client := mqtt.NewClient(opts)
 
-	token := client.Connect()
-	if token.Wait() && token.Error() != nil {
-		log.Fatal("MQTT connection error:", token.Error())
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatal("MQTT error:", token.Error())
 	}
 
 	log.Println("✅ MQTT Connected")
 
-	// ===============================
-	// HTTP SERVER
-	// ===============================
+	// ================= HTTP =================
 
 	r := gin.Default()
 
