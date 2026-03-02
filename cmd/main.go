@@ -6,47 +6,67 @@ import (
 	"os"
 	"time"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
-
-func mustEnv(key string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		log.Fatalf("Missing env: %s", key)
-	}
-	return val
-}
 
 func main() {
 
-	mysqlDSN := mustEnv("MYSQL_DSN")
-	mqttBroker := mustEnv("MQTT_BROKER")
-	mqttUser := mustEnv("MQTT_USER")
-	mqttPass := mustEnv("MQTT_PASS")
+	// ===============================
+	// ENV VARIABLES
+	// ===============================
 
-	// MySQL
+	mysqlDSN := os.Getenv("MYSQL_DSN")
+	mqttBroker := os.Getenv("MQTT_BROKER")
+	mqttUser := os.Getenv("MQTT_USER")
+	mqttPass := os.Getenv("MQTT_PASS")
+
+	if mysqlDSN == "" {
+		log.Fatal("MYSQL_DSN not set")
+	}
+
+	// ===============================
+	// MYSQL
+	// ===============================
+
 	db, err := sql.Open("mysql", mysqlDSN)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("MySQL open error:", err)
 	}
+
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+
 	if err := db.Ping(); err != nil {
-		log.Fatal(err)
+		log.Fatal("MySQL ping error:", err)
 	}
+
 	log.Println("✅ MySQL Connected")
 
+	// ===============================
 	// MQTT
+	// ===============================
+
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(mqttBroker)
 	opts.SetUsername(mqttUser)
 	opts.SetPassword(mqttPass)
+	opts.SetConnectTimeout(5 * time.Second)
 
 	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+
+	token := client.Connect()
+	if token.Wait() && token.Error() != nil {
+		log.Fatal("MQTT connection error:", token.Error())
 	}
+
 	log.Println("✅ MQTT Connected")
+
+	// ===============================
+	// HTTP SERVER
+	// ===============================
 
 	r := gin.Default()
 
@@ -57,6 +77,8 @@ func main() {
 			"time":  time.Now(),
 		})
 	})
+
+	log.Println("🚀 Server started on :8080")
 
 	r.Run("0.0.0.0:8080")
 }
