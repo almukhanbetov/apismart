@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -58,5 +58,5 @@ func main() {
 		})
 	})
 
-	r.Run(":8080")
+	r.Run("0.0.0.0:8080")
 }
