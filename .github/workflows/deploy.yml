@@ -1,0 +1,50 @@
+name: Deploy apismart
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login DockerHub
+        run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      - name: Build Image
+        run: docker build -t ${{ secrets.DOCKER_USER }}/apismart:latest .
+
+      - name: Push Image
+        run: docker push ${{ secrets.DOCKER_USER }}/apismart:latest
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p /root/apismart
+            cd /root/apismart
+
+            cat > docker-compose.yml <<EOF
+            services:
+              api:
+                image: ${{ secrets.DOCKER_USER }}/apismart:latest
+                container_name: apismart
+                restart: always
+                env_file:
+                  - .env
+                ports:
+                  - "8080:8080"
+                extra_hosts:
+                  - "host.docker.internal:host-gateway"
+            EOF
+
+            docker pull ${{ secrets.DOCKER_USER }}/apismart:latest
+            docker compose down || true
+            docker compose up -d

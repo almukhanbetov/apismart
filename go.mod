@@ -1,4 +1,4 @@
-module apismart
+module github.com/almukhanbetov/apismart
 
 go 1.25.0
 
