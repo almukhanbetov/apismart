@@ -1,0 +1,37 @@
+name: Deploy Go API
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.25
+      - name: Build binary
+        run: |
+          go mod tidy
+          GOOS=linux GOARCH=amd64 go build -o apismart main.go
+      - name: Copy to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 37.140.243.167
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "apismart"
+          target: "/opt/apismart/"
+      - name: Restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 37.140.243.167
+          username: root
+          key: ${{ secrets.VPS_KEY }}
+          script: |
+            systemctl daemon-reload
+            systemctl restart apismart

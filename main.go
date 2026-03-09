@@ -7,9 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
-
 const MYSQL_DSN = "smart_db:Asetaset_97@tcp(127.0.0.1:3306)/smart_db"
-
 var db *sql.DB
 
 func main() {
@@ -120,11 +118,8 @@ GROUP BY d.account
 			&r.PaymentsSum,
 			&r.Balance,
 		)
-
 		result = append(result, r)
-
 	}
-
 	c.JSON(200, result)
 }
 func reportFinance(c *gin.Context) {
