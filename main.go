@@ -7,7 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
+
 const MYSQL_DSN = "smart_db:Asetaset_97@tcp(127.0.0.1:3306)/smart_db"
+
 var db *sql.DB
 
 func main() {
@@ -22,6 +24,7 @@ func main() {
 	}
 	fmt.Println("MYSQL CONNECTED")
 	r := gin.Default()
+	r.Static("/uploads", "./uploads")
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
